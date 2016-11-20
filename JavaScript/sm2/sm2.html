@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<!-- saved from url=(0075)http://www.jonllen.com/upload/jonllen/case/jsrsasign-master/sample-sm2.html -->
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>SM2 sample</title>
+    <!-- for pkcs5pkey -->
+    <script src="./js/core.js"></script>
+    <script src="./js/cipher-core.js"></script>
+    <script src="./js/md5.js"></script>
+    <script src="./js/tripledes.js"></script>
+    <script src="./js/enc-base64.js"></script>
+    <!-- for crypto -->
+    <script src="./js/sha1.js"></script>
+    <script src="./js/sha256.js"></script>
+    <!-- for crypto, asn1, asn1x509 -->
+    <script src="./js/yahoo-min.js"></script>
+    <!-- for asn1x509(stohex)
+    <script src="http://kjur.github.io/jsjws/base64x-1.1.min.js"></script> -->
+
+    <script src="./js/jsbn.js"></script>
+    <script src="./js/jsbn2.js"></script>
+    <script src="./js/prng4.js"></script>
+    <script src="./js/rng.js"></script>
+    <script src="./js/rsa.js"></script>
+    <script src="./js/rsa2.js"></script>
+    <script src="./js/base64.js"></script>
+    <script src="./js/asn1hex-1.1.js"></script>
+    <script src="./js/rsapem-1.1.js"></script>
+    <script src="./js/rsasign-1.2.js"></script>
+    <script src="./js/x509-1.1.js"></script>
+    <script src="./js/pkcs5pkey-1.0.js"></script>
+    <script src="./js/asn1-1.0.js"></script>
+    <script src="./js/asn1x509-1.0.js"></script>
+    <script src="./js/crypto-1.1.js"></script>
+
+    <script src="./js/ec.js"></script>
+    <script src="./js/ec-patch.js"></script>
+    <script src="./js/ecdsa-modified-1.0.js"></script>
+    <script src="./js/sm3.js"></script>
+    <script src="./js/sm3-sm2-1.0.js"></script>
+    <script src="./js/ecparam-1.0.js"></script>
+    <script>
+    function doGenerate() {
+      var f1 = document.form1;
+      var curve = f1.curve1.value;
+      var ec = new KJUR.crypto.ECDSA({"curve": curve});
+      var keypair = ec.generateKeyPairHex();
+
+      f1.prvkey1.value = keypair.ecprvhex;
+      f1.pubkey1.value = keypair.ecpubhex;
+    }
+
+    function doSign() {
+      var f1 = document.form1;
+      var prvkey = f1.prvkey1.value;
+      var curve = f1.curve1.value;
+      var sigalg = f1.sigalg1.value;
+      var msg1 = f1.msg1.value;
+
+      var sig = new KJUR.crypto.Signature({"alg": sigalg, "prov": "cryptojs/jsrsa"});
+      sig.initSign({'ecprvhex': prvkey, 'eccurvename': curve});
+      sig.updateString(msg1);
+      var sigValueHex = sig.sign();
+      
+      f1.sigval1.value = sigValueHex;
+    }
+
+    function doVerify() {
+      var f1 = document.form1;
+      var pubkey = f1.pubkey1.value;
+      var curve = f1.curve1.value;
+      var sigalg = f1.sigalg1.value;
+      var msg1 = f1.msg1.value;
+      var sigval = f1.sigval1.value;
+
+      var sig = new KJUR.crypto.Signature({"alg": sigalg, "prov": "cryptojs/jsrsa"});
+      sig.initVerifyByPublicKey({'ecpubhex': pubkey, 'eccurvename': curve});
+      sig.updateString(msg1);
+      var result = sig.verify(sigval);
+      if (result) {
+        alert("valid signature");
+      } else {
+        alert("invalid signature");
+      }
+    }
+    </script>
+</head>
+<body>
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <h1 id="project_title">SM2 sample</h1>
+          <h2 id="project_tagline">generating SM2 keypair, signing and verifying SM3withSM2 signature</h2>
+
+          <a href="http://kjur.github.io/jsrsasign/" target="_blank">GitHub jsrsasign</a> | 
+          <a href="http://www.jonllen.com/upload/jonllen/case/jsrsasign-master/sample-sm2_tool.html" target="_blank">SM2 Cert Verifcation</a>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+
+    <!-- now editing -->
+    <form name="form1">
+    <h4>(Step1) choose supported EC curve name and generate key pair</h4>
+    ECC curve name: 
+    <select name="curve1">
+    <option value="sm2">SM2
+    </option><option value="secp256r1">secp256r1 (= NIST P-256, P-256, prime256v1)
+    </option><option value="secp256k1">secp256k1
+    </option><option value="secp384r1">secp384r1 (= NIST P-384, P-384)
+    </option></select><br>
+    <input type="button" value="generate EC key pair" onclick="doGenerate();"><br>
+    <p>
+    EC private key (hex): <input type="text" name="prvkey1" value="" size="100"><br>
+    EC public key (hex): <input type="text" name="pubkey1" value="" size="100"><br>
+    </p>
+
+    <!-- ============================================================== -->
+
+    <h4>(Step2) Sign message</h4>
+    Signature Algorithm: 
+    <select name="sigalg1">
+    <option value="SM3withSM2">SM3withSM2
+    </option><option value="SHA256withECDSA">SHA256withECDSA
+    </option><option value="SHA1withECDSA">SHA1withECDSA
+    </option></select><br>
+
+    Message string to be signed: 
+    <input type="text" name="msg1" value="jonllen" size="100"><br>
+    <input type="button" value="sign message" onclick="doSign();"><br>
+    <p>
+    Signature value (hex): <input type="text" name="sigval1" value="" size="100"><br>
+    </p>
+
+    <h4>(Step3) Verify signature</h4>
+    <input type="button" value="verify it!" onclick="doVerify();">
+    <input type="reset" value="reset">
+
+    </form>
+    <!-- now editing -->
+
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">jsrsasign maintained by <a href="https://github.com/kjur" target="_blank">kjur</a></p>
+        <p>Powered By <a href="http://www.jonllen.com/" target="_blank">Jonllen</a></p>
+      </footer>
+    </div>
+</body>
+</html>
