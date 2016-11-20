@@ -1,7 +1,7 @@
 
 因最近一个项目需要用到国密算法，所以在网上找了一下国密算法的相关资料。国密算法并不是特指一种算法，而是指国家密码局认定的国产密码算法。它包括 SM2,SM3,SM4 祖冲之算法等一系列算法，可以参考[这篇公告](http://www.oscca.gov.cn/News/201204/News_1228.htm)说明。
 
-在网上也有不少国密算法的实现，比如说 北京大学信息安全实验室 开发和维护的 [GmSSL](http://gmssl.org/) ，它是支持国密算法和标准的 openSSL 分支，其代码托管在 [github](https://github.com/guanzhi/GmSSL) 上。
+在网上也有不少国密算法的实现，比如说 北京大学信息安全实验室 开发和维护的 [GmSSL](http://gmssl.org/) ，它是支持国密算法和标准的 openSSL 分支，其代码托管在 [https://github.com/guanzhi/GmSSL](https://github.com/guanzhi/GmSSL) 上。
 
 国密算法 SM2 是公钥算法，即非对称加密算法，类似于 RSA，不过 RSA 是基于大素数分解问题，SM2 是基于椭圆曲线问题，SM3 是消息摘要算法，类似于 md5 或 SHA-1 算法，不过 md5 和 SHA-1 都在 2005 年被中国山东大学的 王小云 教授破解，不建议使用，SM4 是传统的对称加密算法， 采用分组加密，类似于 DES 或 AES ，可以在[这篇文章](http://www.wtoutiao.com/a/844743.html)里看到这些算法之间的简单比较，更加深入的研究请参考论文。
 
