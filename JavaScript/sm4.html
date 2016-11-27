@@ -7,9 +7,15 @@
 	<!-- sm4 -->
 	<script src="js/sm4.js"></script>
 	<script>
-		var start = new Date().getTime();
 		message = new Array(0x01234567,0x89abcdef,0xfedcba98,0x76543210);
 		key = new Array(0x01234567,0x89abcdef,0xfedcba98,0x76543210);
+		ciphertext = KJUR_encrypt_sm4(message,key)
+		console.log(ciphertext)
+		for (var j = 0; j < ciphertext.length ; j++ ) {
+			ciphertext[j] = parseInt(ciphertext[j], 16)
+		}
+		console.log(KJUR_decrypt_sm4(ciphertext,key))
+		var start = new Date().getTime();
 		for (var x=0; x < 1; x++){
 			ciphertext = KJUR_encrypt_sm4(message,key);
 			for (var i = ciphertext.length - 1; i >= 0; i--) {

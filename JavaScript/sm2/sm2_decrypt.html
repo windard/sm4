@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<!-- saved from url=(0081)http://www.jonllen.com/upload/jonllen/case/jsrsasign-master/sample-sm2_crypt.html -->
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>SM2 sample</title>
+    <!-- for pkcs5pkey -->
+    <script src="./js/core.js"></script>
+    <script src="./js/cipher-core.js"></script>
+    <script src="./js/md5.js"></script>
+    <script src="./js/tripledes.js"></script>
+    <script src="./js/enc-base64.js"></script>
+    <!-- for crypto -->
+    <script src="./js/sha1.js"></script>
+    <script src="./js/sha256.js"></script>
+    <!-- for crypto, asn1, asn1x509 -->
+    <script src="./js/yahoo-min.js"></script>
+    <!-- for asn1x509(stohex)
+    <script src="http://kjur.github.io/jsjws/base64x-1.1.min.js"></script> -->
+
+    <script src="./js/jsbn.js"></script>
+    <script src="./js/jsbn2.js"></script>
+    <script src="./js/prng4.js"></script>
+    <script src="./js/rng.js"></script>
+    <script src="./js/rsa.js"></script>
+    <script src="./js/rsa2.js"></script>
+    <script src="./js/base64.js"></script>
+    <script src="./js/asn1hex-1.1.js"></script>
+    <script src="./js/rsapem-1.1.js"></script>
+    <script src="./js/rsasign-1.2.js"></script>
+    <script src="./js/x509-1.1.js"></script>
+    <script src="./js/pkcs5pkey-1.0.js"></script>
+    <script src="./js/asn1-1.0.js"></script>
+    <script src="./js/asn1x509-1.0.js"></script>
+    <script src="./js/crypto-1.1.js"></script>
+
+    <script src="./js/ec.js"></script>
+    <script src="./js/ec-patch.js"></script>
+    <script src="./js/ecdsa-modified-1.0.js"></script>
+    <script src="./js/sm3.js"></script>
+    <script src="./js/sm3-sm2-1.0.js"></script>
+    <script src="./js/ecparam-1.0.js"></script>
+    <script src="./js/sm2.js"></script>
+    <script>
+    function doGenerate() {
+      var f1 = document.form1;
+      var curve = f1.curve1.value;
+      var ec = new KJUR.crypto.ECDSA({"curve": curve});
+      var keypair = ec.generateKeyPairHex();
+
+      f1.prvkey1.value = keypair.ecprvhex;
+      f1.pubkey1.value = keypair.ecpubhex;
+    }
+
+    function doCrypt() {
+        var f1 = document.form1;
+        
+        var curve = f1.curve1.value;
+        var msg = f1.msg1.value;
+        var msgData = CryptoJS.enc.Utf8.parse(msg);
+
+        var pubkeyHex = f1.pubkey1.value;
+        if (pubkeyHex.length > 64 * 2) {
+            pubkeyHex = pubkeyHex.substr(pubkeyHex.length - 64 * 2);
+        }
+
+        var xHex = pubkeyHex.substr(0, 64);
+        var yHex = pubkeyHex.substr(64);
+      
+      var cipherMode = f1.cipherMode.value;
+        
+        var cipher = new SM2Cipher(cipherMode);
+        var userKey = cipher.CreatePoint(xHex, yHex);
+      
+      msgData = cipher.GetWords(msgData.toString());
+      
+        var encryptData = cipher.Encrypt(userKey, msgData);
+        f1.sigval1.value = encryptData;
+    }
+
+    function doDecrypt() {
+        var f1 = document.form1;
+        var prvkey = f1.prvkey1.value;
+        var encryptData = f1.sigval1.value;
+        
+        var privateKey = new BigInteger(prvkey, 16);
+      
+      var cipherMode = f1.cipherMode.value;
+            
+        var cipher = new SM2Cipher(cipherMode);
+        var data = cipher.Decrypt(privateKey, encryptData);
+      
+        alert(data ? '解密成功，原文：' + data : '解密失败！');
+    }
+
+    function certCrypt() {
+        var certData = document.getElementById('txtCertData').value;
+        if( certData != "") {
+          var key = X509.getPublicKeyFromCertPEM(certData);
+        document.getElementById('txtPubKey').value = key.pubKeyHex;
+        }
+
+        var pubkey = document.getElementById('txtPubKey').value.replace(/\s/g,'');
+      
+      
+        var pubkeyHex = pubkey;
+        if (pubkeyHex.length > 64 * 2) {
+            pubkeyHex = pubkeyHex.substr(pubkeyHex.length - 64 * 2);
+        }
+
+        var xHex = pubkeyHex.substr(0, 64);
+        var yHex = pubkeyHex.substr(64);
+      
+      var cipherMode = document.getElementById('cipherMode').value;
+        
+        var cipher = new SM2Cipher(cipherMode);
+        var userKey = cipher.CreatePoint(xHex, yHex);
+      
+      var msg = document.getElementById('txtRawData').value;
+      var msgData = CryptoJS.enc.Utf8.parse(msg);
+      msgData = cipher.GetWords(msgData.toString());
+      
+        var encryptData = cipher.Encrypt(userKey, msgData);
+        document.getElementById('txtCryptData').value = hex2b64(encryptData);
+    }
+    </script>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <h1 id="project_title">SM2 Algorithm Encryption and Decryption sample</h1>
+          <h2 id="project_tagline">generating SM2 keypair, SM2 Algorithm Encryption and Decryption</h2>
+      <a href="http://www.jonllen.com/">Home</a> | 
+          <a href="http://www.jonllen.com/upload/jonllen/case/jsrsasign-master/sample-sm2.html">SM2 sample</a> | 
+          <a href="http://www.jonllen.com/upload/jonllen/case/jsrsasign-master/sample-sm2_tool.html">SM2 Cert Verifcation</a> | 
+          <a href="http://www.jonllen.com/upload/jonllen/case/jsrsasign-master/sample-sm2_crypt.html">SM2 Encryption and Decryption sample</a>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+
+<script type="text/javascript">
+  if(/msie/.test( navigator.userAgent.toLowerCase() )){ document.write("<p><em>若IE浏览器下提示停止运行此脚本，请选择<b>否(N)</b>继续运行。</em></p>");}
+</script>
+  
+<!-- now editing -->
+<form name="form1">
+<h4>(Step1) choose supported EC curve name and generate key pair</h4>
+ECC curve name: 
+<select name="curve1">
+<option value="sm2">SM2
+</option><option value="secp256r1">secp256r1 (= NIST P-256, P-256, prime256v1)
+</option><option value="secp256k1">secp256k1
+</option><option value="secp384r1">secp384r1 (= NIST P-384, P-384)
+</option></select><br>
+<input type="button" value="generate EC key pair" onclick="doGenerate();"><br>
+<p>
+EC private key (hex): <input type="text" name="prvkey1" value="" size="100"><br>
+EC public key (hex): <input type="text" name="pubkey1" value="" size="100"><br>
+</p>
+
+<!-- ============================================================== -->
+
+<h4>(Step2) Crypt message</h4>
+Crypt Options: 
+<select id="cipherMode" name="cipherMode">
+<option value="1" selected="selected">C1C3C2
+</option><option value="0">C1C2C3
+</option></select><br>
+
+Message string to be Crypted: 
+<input type="text" name="msg1" value="jonllen" size="100"><br>
+<input type="button" value="Crypt message" onclick="doCrypt();"><br>
+<p>
+Crypt value (hex): <input type="text" id="sigval1" name="sigval1" value="" size="100"><br>
+</p>
+
+<h4>(Step3) Decrypt message</h4>
+<input type="button" value="decrypt it!" onclick="doDecrypt();">
+<input type="reset" value="reset">
+
+</form>
+<!-- now editing -->
+
+      </section>
+    
+    <section class="inner">
+      <hr size="1">
+      <h4>SM2 Certificate Encryption</h4>
+        <fieldset>
+            <legend>SM2证书加密</legend>
+            <ul>
+                <li>
+                    <label>原始数据：<input type="text" id="txtRawData" size="80" value="jonllen"></label>
+                </li>
+        <li>
+                    <label>证书数据：<textarea id="txtCertData" style="width: 522px; height: 188px; margin: 0px;">MIICQDCCAeWgAwIBAgIQG2THdO0arf/KaLKoTVlCOzAMBggqgRzPVQGDdQUAMB8xEDAOBgNVBAMMB1NNMlJPT1QxCzAJBgNVBAYTAkNOMB4XDTE0MDYxODEzNTgzNVoXDTE2MDYxODEzNTgzNVowZTEiMCAGCSqGSIb3DQEJARYTam9ubGxlbkBob3RtYWlsLmNvbTEPMA0GA1UEBwwG6ZW/5rKZMQ8wDQYDVQQIDAbmuZbljZcxCzAJBgNVBAYTAkNOMRAwDgYDVQQDDAdKb25sbGVuMFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAEXLAuT39XB5LJmTprFiGLPfqZl5tyGm1n9oXSVDrGRP2RfQRJOqD6cH6PEvmGhM1ydJv0iQMg2mvh6PjAlm58W6OBujCBtzAMBgNVHRMBAf8EAjAAMB0GA1UdDgQWBBQstXX3UIwlBK9k70GJYGM8mjG6gTAfBgNVHSMEGDAWgBQ/LpOmNnAJt7mAwIZpsX3cnqlkqjBCBggrBgEFBQcBAQQ2MDQwMgYIKwYBBQUHMAKGJmh0dHA6Ly9sb2NhbGhvc3QvUEtJL2NlcnRzL0RTQVJPT1QuY3J0MA4GA1UdDwEB/wQEAwIE8DATBgNVHSUEDDAKBggrBgEFBQcDAjAMBggqgRzPVQGDdQUAA0cAMEQCIBJO7K/XDt+igzKkWSkbRKZRtQKsS1i2Fmdp2Ar5EEL+AiA759mE/uINaEC7sMXOoqzTzkLCMIHGyLi80j0dG5pjow==</textarea>
+            <em>base64编码格式</em>
+          </label>
+                </li>
+                <li style="display:none">
+                    <label>证书公钥：<input type="text" id="txtPubKey" size="120" value=""></label>
+                </li>
+        <li>
+          <input type="button" value="加密" onclick="certCrypt();">
+        </li>
+                <li>
+                    <label>加密后数据：<textarea id="txtCryptData" readonly="readonly" style="width: 500px; height: 82px; margin-top: 0px; margin-bottom: 0px;"></textarea><em>base64编码格式</em>
+           </label>
+                </li>
+        
+            </ul>
+            <div>
+                
+            </div>
+        </fieldset>
+      </section>
+    
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p>Powered By <a href="http://www.jonllen.com/" target="_blank">Jonllen</a></p>
+      </footer>
+    </div>
+</body>
+</html>
