@@ -59,29 +59,41 @@ var CK = new Array(
 
 var FK = new Array(0xa3b1bac6,0x56aa3350,0x677d9197,0xb27022dc);
 
-function bigxor(a, b) {
-	var abin = a.toString(2);
-	var bbin = b.toString(2);
-	var loggest = abin.length >= bbin.length ? abin.length : bbin.length;
-	abin = abin.length == loggest ? abin :"0".repeat(loggest - abin.length) + abin;
-	bbin = bbin.length == loggest ? bbin :"0".repeat(loggest - bbin.length) + bbin;
-	var result = "";
-	for (var i = loggest - 1; i >= 0; i--) {
-		result = abin[i] == bbin[i] ? '0'+result : '1'+result; 
-	};
-	return parseInt(result, 2);
+// function bigxor(a, b) {
+// 	if (a.toString(2).length < 33 && b.toString(2).length < 33){		
+// 		return a ^ b
+// 	}
+// 	var abin = a.toString(2);
+// 	var bbin = b.toString(2);
+// 	var loggest = abin.length >= bbin.length ? abin.length : bbin.length;
+// 	abin = abin.length == loggest ? abin :"0".repeat(loggest - abin.length) + abin;
+// 	bbin = bbin.length == loggest ? bbin :"0".repeat(loggest - bbin.length) + bbin;
+// 	var result = "";
+// 	for (var i = loggest - 1; i >= 0; i--) {
+// 		result = abin[i] == bbin[i] ? '0'+result : '1'+result; 
+// 	};
+// 	return parseInt(result, 2);
+// }
+
+function bigxor(a, b){
+	return a ^ b
 }
 
+// function leftshift(a, n, size=32) {
+// 	var result = new Array(size);
+// 	result.fill(0);
+// 	var bin = a.toString(2);
+// 	bin = bin.length == size ? bin :"0".repeat(size - bin.length) + bin;
+// 	for (var i = bin.length - 1; i >= 0; i--) {
+// 		result[(i - n + size)%size] = bin[i];
+// 	};
+// 	result = result.join("");
+// 	return parseInt(result, 2);
+// }
+
 function leftshift(a, n, size=32) {
-	var result = new Array(size);
-	result.fill(0);
-	var bin = a.toString(2);
-	bin = bin.length == size ? bin :"0".repeat(size - bin.length) + bin;
-	for (var i = bin.length - 1; i >= 0; i--) {
-		result[(i - n + size)%size] = bin[i];
-	};
-	result = result.join("");
-	return parseInt(result, 2);
+	n = n % size
+	return (a << n) | (a >>> (size - n))
 }
 
 function prefixInteger(str, length) {
@@ -89,16 +101,24 @@ function prefixInteger(str, length) {
            .slice(-length).join("");
 }
 
+// function sm4Sbox(a) {
+// 	var a1 = prefixInteger(a.toString(16),8).slice(0,2);
+// 	var a2 = prefixInteger(a.toString(16),8).slice(2,4);
+// 	var a3 = prefixInteger(a.toString(16),8).slice(4,6);
+// 	var a4 = prefixInteger(a.toString(16),8).slice(6,8);
+// 	var b1 = SboxTable[parseInt(a1[0], 16)][parseInt(a1[1], 16)];
+// 	var b2 = SboxTable[parseInt(a2[0], 16)][parseInt(a2[1], 16)];
+// 	var b3 = SboxTable[parseInt(a3[0], 16)][parseInt(a3[1], 16)];
+// 	var b4 = SboxTable[parseInt(a4[0], 16)][parseInt(a4[1], 16)];
+// 	return parseInt(prefixInteger(b1.toString(16), 2) + prefixInteger(b2.toString(16), 2) + prefixInteger(b3.toString(16), 2) + prefixInteger(b4.toString(16), 2) , 16)
+// }
+
 function sm4Sbox(a) {
-	var a1 = prefixInteger(a.toString(16),8).slice(0,2);
-	var a2 = prefixInteger(a.toString(16),8).slice(2,4);
-	var a3 = prefixInteger(a.toString(16),8).slice(4,6);
-	var a4 = prefixInteger(a.toString(16),8).slice(6,8);
-	var b1 = SboxTable[parseInt(a1[0], 16)][parseInt(a1[1], 16)];
-	var b2 = SboxTable[parseInt(a2[0], 16)][parseInt(a2[1], 16)];
-	var b3 = SboxTable[parseInt(a3[0], 16)][parseInt(a3[1], 16)];
-	var b4 = SboxTable[parseInt(a4[0], 16)][parseInt(a4[1], 16)];
-	return parseInt(prefixInteger(b1.toString(16), 2) + prefixInteger(b2.toString(16), 2) + prefixInteger(b3.toString(16), 2) + prefixInteger(b4.toString(16), 2) , 16)
+	var b1 = SboxTable[(a & 0xf0000000) >>> 28][(a & 0x0f000000) >>> 24]
+	var b2 = SboxTable[(a & 0x00f00000) >>> 20][(a & 0x000f0000) >>> 16]
+	var b3 = SboxTable[(a & 0x0000f000) >>> 12][(a & 0x00000f00) >>>  8]
+	var b4 = SboxTable[(a & 0x000000f0) >>>  4][(a & 0x0000000f) >>>  0]
+	return (b1 << 24) | (b2 << 16) | (b3 << 8) | (b4 << 0)
 }
 
 function GET_ULONG_BE (a) {

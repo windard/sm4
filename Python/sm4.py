@@ -36,13 +36,17 @@ CK =[
 0x10171e25, 0x2c333a41, 0x484f565d, 0x646b7279
 ]
 
+# def leftshift(a, n, size=32):
+# 	a = list(bin(a)[2:])
+# 	a = ["0"]*(size - len(a)) + a
+# 	b = ['0']*32
+# 	for i,x in enumerate(a):
+# 		b[(i-n)%32] = a[i]
+# 	return int("".join(b), 2)
+
 def leftshift(a, n, size=32):
-	a = list(bin(a)[2:])
-	a = ["0"]*(size - len(a)) + a
-	b = ['0']*32
-	for i,x in enumerate(a):
-		b[(i-n)%32] = a[i]
-	return int("".join(b), 2)
+	n = n % size
+	return (a << n) | (a >> (size - n))
 
 def PUT_ULONG_BE(b):
 	b = sm4Sbox(b)
@@ -52,16 +56,23 @@ def GET_ULONG_BE(b):
 	b = sm4Sbox(b)
 	return b ^ (leftshift(b, 2)) ^ (leftshift(b, 10)) ^ (leftshift(b, 18)) ^ (leftshift(b, 24))
 
+# def sm4Sbox(a):
+# 	a1 = ("%08x"%a)[0:2]
+# 	a2 = ("%08x"%a)[2:4]
+# 	a3 = ("%08x"%a)[4:6]
+# 	a4 = ("%08x"%a)[6:8]
+# 	b1 = SboxTable[int(a1[0], 16)][int(a1[1], 16)]
+# 	b2 = SboxTable[int(a2[0], 16)][int(a2[1], 16)]
+# 	b3 = SboxTable[int(a3[0], 16)][int(a3[1], 16)]
+# 	b4 = SboxTable[int(a4[0], 16)][int(a4[1], 16)]
+# 	return int("%02x%02x%02x%02x"%(b1,b2,b3,b4), 16)
+
 def sm4Sbox(a):
-	a1 = ("%08x"%a)[0:2]
-	a2 = ("%08x"%a)[2:4]
-	a3 = ("%08x"%a)[4:6]
-	a4 = ("%08x"%a)[6:8]
-	b1 = SboxTable[int(a1[0], 16)][int(a1[1], 16)]
-	b2 = SboxTable[int(a2[0], 16)][int(a2[1], 16)]
-	b3 = SboxTable[int(a3[0], 16)][int(a3[1], 16)]
-	b4 = SboxTable[int(a4[0], 16)][int(a4[1], 16)]
-	return int("%02x%02x%02x%02x"%(b1,b2,b3,b4), 16)
+	b1 = SboxTable[(a & 0xf0000000) >> 28][(a & 0x0f000000) >> 24]
+	b2 = SboxTable[(a & 0x00f00000) >> 20][(a & 0x000f0000) >> 16]
+	b3 = SboxTable[(a & 0x0000f000) >> 12][(a & 0x00000f00) >>  8]
+	b4 = SboxTable[(a & 0x000000f0) >>  4][(a & 0x0000000f) >>  0]
+	return (b1 << 24) | (b2 << 16) | (b3 << 8) | (b4 << 0)
 
 def generate_key(MK):
 	K  = [0] *36
@@ -85,8 +96,8 @@ def sm4_encrypt(message, key, method='cbc'):
 	for i in xrange(32):
 		X[i+4] = X[i] ^ GET_ULONG_BE(X[i+1] ^ X[i+2] ^ X[i+3] ^ rk[i])
 
-	Y = [hex(X[35]), hex(X[34]), hex(X[33]), hex(X[32])]
-
+	# Y = [hex(X[35]), hex(X[34]), hex(X[33]), hex(X[32])]
+	Y = [X[35], X[34], X[33], X[32]]
 	return Y
 
 def sm4_decrypt(crphertext, key, method='cbc'):
@@ -99,8 +110,9 @@ def sm4_decrypt(crphertext, key, method='cbc'):
 	for i in xrange(32):
 		X[i+4] = X[i] ^ GET_ULONG_BE(X[i+1] ^ X[i+2] ^ X[i+3] ^ rk[i])
 
-	Y = [hex(X[35]), hex(X[34]), hex(X[33]), hex(X[32])]
+	# Y = [hex(X[35]), hex(X[34]), hex(X[33]), hex(X[32])]
 
+	Y = [X[35], X[34], X[33], X[32]]
 	return Y
 
 if __name__ == '__main__':
@@ -108,18 +120,13 @@ if __name__ == '__main__':
 	message = [0x01234567,0x89abcdef,0xfedcba98,0x76543210]
 	key = [0x01234567,0x89abcdef,0xfedcba98,0x76543210]
 	for x in xrange(10000):
-		# print message
 		ciphertext = sm4_encrypt(message, key)
-		# print ciphertext
-		message = map(lambda x:int(x[:-1], 16), ciphertext)
-		# print ciphertext
-		# if x%1000 == 0:
-			# print x
-			# print ciphertext
-			# break
-	print ciphertext
+		# message = map(lambda x:int(x[:-1], 16), ciphertext)
+	# print ciphertext
 	print time.clock()
 	# ciphertext = [0x681edf34, 0xd206965e, 0x86b3e94f, 0x536e4246]
 	# print sm4_decrypt(ciphertext, key)
 	# 10000 times 61.7811434009 s 
+	# 10000 times 7.86056015746 s
+	# 10000 times 5.46304156202 s
 
