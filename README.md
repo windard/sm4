@@ -7,11 +7,24 @@
 
 网上已有 JavaScript 实现的 [SM2 算法](http://www.jonllen.com/jonllen/js/178.aspx)，其参考引用了很多 [jsrsasign](http://kjur.github.io/jsrsasign/) 的实现，这是一个用 JavaScript 做加密解密的库，实现了很多的加密解密算法。
 
-JavaScript 本身是有很多缺陷的，数字只有 int 类型，虽然说是 64 位的，但是在做移位运算的时候它会被自动转换为 32 位，这就很尴尬，32 位的移位运算，一不小心就越界了，而且移位也只有左移，而没有循环移位。虽然说 Python 也是只有 int 型，不过它是真真的64 位，不会缺斤少两，不会像 JavaScript 连 大整数异或 都会有问题，最后循环左移操作都是自己实现的，JavaScript 还有自己实现以下大整数异或操作，网上也有文章详细的提到 JavaScript 的[移位操作的缺陷](http://jerryzou.com/posts/do-you-really-want-use-bit-operators-in-JavaScript/)。
+JavaScript 本身是有很多缺陷的，数字只有 int 类型，虽然说是 64 位的，但是在做移位运算的时候它会被自动转换为 32 位，这就很尴尬，32 位的移位运算，一不小心就越界了，而且移位也只有左移，而没有循环移位。虽然说 Python 也是只有 int 型，不过它是真真的64 位，不会缺斤少两，网上也有文章详细的提到 JavaScript 的[移位操作的缺陷](http://jerryzou.com/posts/do-you-really-want-use-bit-operators-in-JavaScript/)。
+
+JavaScript 没有循环左移，只有左移，右移和无符号位右移。JavaScript 的复数的值等于 - （值的逆 + 1），比如说 -977410425 的二进制表示为 `11000101101111011110011010000111` ，它的逆为 `00111010010000100001100101111000` ,它的值的逆加1为 `00111010010000100001100101111001` ，所以在 JavaScript 中就会表示为 `-111010010000100001100101111001`，即 `x = -(~x + 1)`
+
+```
+a=-977410425
+-977410425
+a.toString(2)
+"-111010010000100001100101111001"
+(a>>0).toString(2)
+"-111010010000100001100101111001"
+(a>>>0).toString(2)
+"11000101101111011110011010000111"
+```
 
 关于 SM4 算法流程，国家密码局是已经公开了的，可以找到一份 PDF 文档，写的清清楚楚，明明白白，比我想象的要简单一些，这里就展示一下我自己实现的 循环左移 之类的函数，为什么一直在提循环左移呢？肯定是因为算法里面会用到的吖。
 
-<object data="/software/sm4.pdf" height="525" type="application/pdf" width="729" internalinstanceid="7">
+<object data="/software/sm4.pdf" height="525" type="application/pdf" width="680" internalinstanceid="7">
 	<embed src="/software/sm4.pdf"><br>
 </object>
 
@@ -23,15 +36,8 @@ JavaScript 版
 
 ```
 function leftshift(a, n, size=32) {
-	var result = new Array(size);
-	result.fill(0);
-	var bin = a.toString(2);
-	bin = bin.length == size ? bin :"0".repeat(size - bin.length) + bin;
-	for (var i = bin.length - 1; i >= 0; i--) {
-		result[(i - n + size)%size] = bin[i];
-	};
-	result = result.join("");
-	return parseInt(result, 2);
+	n = n % size
+	return (a << n) | (a >>> (size - n))
 }
 ```
 
@@ -39,34 +45,36 @@ Pyhton 版
 
 ```
 def leftshift(a, n, size=32):
-	a = list(bin(a)[2:])
-	a = ["0"]*(size - len(a)) + a
-	b = ['0']*32
-	for i,x in enumerate(a):
-		b[(i-n)%32] = a[i]
-	return int("".join(b), 2)
+	n = n % size
+	return (a << n) | (a >> (size - n))
 ```
 
-对比一下就可以看到核心思想都是一样的，将数字转换为列表并填满到指定位数，然后使用模指数运算实现数字移位，不过神奇的 JavaScript 的负数的模指数还是负数。。。
+或许也是因为这些不优雅的代码，使得代码的执行效率不高，或者说非常低，在官方文档中提供了一个 1000000 遍的加密样例，然而我的 JavaScript 10000 遍就需要近一分钟，Python 10000 遍近 10 秒，这样下来就需要一个多小时了，可是网上找到的 C语言 和 Java 实现的 SM4 对 1000000 遍加密只需要近一秒钟即可，或许跟代码质量也有关吧，但还是可怕的性能差异。
 
-然后就是 JavaScript 版的 异或操作，真是 JavaScript 为什么大整数的异或都有问题。
+还有一个地方是 S 盒代换的部分，也改进了一下，速度略有提升，但是差距较大。
+
+JavaScript 版
 
 ```
-function bigxor(a, b) {
-	var abin = a.toString(2);
-	var bbin = b.toString(2);
-	var loggest = abin.length >= bbin.length ? abin.length : bbin.length;
-	abin = abin.length == loggest ? abin :"0".repeat(loggest - abin.length) + abin;
-	bbin = bbin.length == loggest ? bbin :"0".repeat(loggest - bbin.length) + bbin;
-	var result = "";
-	for (var i = loggest - 1; i >= 0; i--) {
-		result = abin[i] == bbin[i] ? '0'+result : '1'+result; 
-	};
-	return parseInt(result, 2);
+function sm4Sbox(a) {
+	var b1 = SboxTable[(a & 0xf0000000) >>> 28][(a & 0x0f000000) >>> 24]
+	var b2 = SboxTable[(a & 0x00f00000) >>> 20][(a & 0x000f0000) >>> 16]
+	var b3 = SboxTable[(a & 0x0000f000) >>> 12][(a & 0x00000f00) >>>  8]
+	var b4 = SboxTable[(a & 0x000000f0) >>>  4][(a & 0x0000000f) >>>  0]
+	return (b1 << 24) | (b2 << 16) | (b3 << 8) | (b4 << 0)
 }
 ```
 
-还是先转换为列表补齐然后逐位对比。这两个函数觉得都实现的好丑陋，不优雅，希望有更好的办法。
+python 版
 
-或许也是因为这些不优雅的代码，使得代码的执行效率不高，或者说非常低，在官方文档中提供了一个 1000000 遍的加密样例，然而我的 JavaScript 和 Python 跑 10000 遍就需要近一分钟，这样下来就需要一个多小时了，可是网上找到的 C语言 和 Java 实现的 SM4 对 1000000 遍加密只需要近一秒钟即可，或许跟代码质量也有关吧，但还是可怕的性能差异。
+```
+def sm4Sbox(a):
+	b1 = SboxTable[(a & 0xf0000000) >> 28][(a & 0x0f000000) >> 24]
+	b2 = SboxTable[(a & 0x00f00000) >> 20][(a & 0x000f0000) >> 16]
+	b3 = SboxTable[(a & 0x0000f000) >> 12][(a & 0x00000f00) >>  8]
+	b4 = SboxTable[(a & 0x000000f0) >>  4][(a & 0x0000000f) >>  0]
+	return (b1 << 24) | (b2 << 16) | (b3 << 8) | (b4 << 0)
 
+```
+
+代码都在 [https://github.com/windard/sm4](https://github.com/windard/sm4) 了，打包下载在[这里](https://github.com/windard/sm4/archive/master.zip)。
