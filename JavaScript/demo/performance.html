@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>国密算法实现</title>
+    <!-- for pkcs5pkey -->
+    <script src="js/core.js"></script>
+    <script src="js/cipher-core.js"></script>
+    <script src="js/md5.js"></script>
+    <script src="js/tripledes.js"></script>
+    <script src="js/enc-base64.js"></script>
+    <!-- for crypto -->
+    <script src="js/sha1.js"></script>
+    <script src="js/sha256.js"></script>
+    <!-- for crypto, asn1, asn1x509 -->
+    <script src="js/yahoo-min.js"></script>
+    <!-- for asn1x509(stohex)
+    <script src="http://kjur.github.io/jsjws/base64x-1.1.min.js"></script> -->
+
+    <script src="js/jsbn.js"></script>
+    <script src="js/jsbn2.js"></script>
+    <script src="js/prng4.js"></script>
+    <script src="js/rng.js"></script>
+    <script src="js/rsa.js"></script>
+    <script src="js/rsa2.js"></script>
+    <script src="js/base64.js"></script>
+    <script src="js/asn1hex-1.1.js"></script>
+    <script src="js/rsapem-1.1.js"></script>
+    <script src="js/rsasign-1.2.js"></script>
+    <script src="js/x509-1.1.js"></script>
+    <script src="js/pkcs5pkey-1.0.js"></script>
+    <script src="js/asn1-1.0.js"></script>
+    <script src="js/asn1x509-1.0.js"></script>
+    <script src="js/crypto-1.1.js"></script>
+
+    <script src="js/ec.js"></script>
+    <script src="js/ec-patch.js"></script>
+    <script src="js/ecdsa-modified-1.0.js"></script>
+    <script src="js/sm3.js"></script>
+    <script src="js/sm3-sm2-1.0.js"></script>
+    <script src="js/ecparam-1.0.js"></script>
+    <script src="js/sm2-guomi.js"></script>
+    
+    <!-- sm4 -->
+    <script src="js/sm4.js"></script>
+    <script src="js/utils.js"></script>
+    <!-- fingerprint -->
+    <script src="js/fingerprint2.js"></script>
+    <!-- sm3 -->
+    <script src="js/sm3-guomi.js"></script>
+
+</head>
+<body>
+    <div id="sm2"></div>
+    <div id="sm3"></div>
+    <div id="sm4"></div>
+</body>
+<script>
+
+    // --------------------------- SM2 ---------------------------------------
+    var sm2 = "";
+    var method = "SM2"
+
+    var ec = new KJUR.crypto.ECDSA({"curve": method});
+    var keypair = ec.generateKeyPairHex();
+
+    var privkey = keypair.ecprvhex;
+    var publkey = keypair.ecpubhex
+    sm2 += "<h3>SM2 算法性能测试</h3>";
+    sm2 += "message: This is message";
+    sm2 += "<br>"+"private key:" + privkey;
+    sm2 += "<br>"+"public key :" + publkey;
+
+    var start = new Date().getTime();
+    var msgData = CryptoJS.enc.Utf8.parse("This is message");
+
+    if (publkey.length > 64 * 2) {
+        publkey = publkey.substr(publkey.length - 64 * 2);
+    }
+
+    var xHex = publkey.substr(0, 64);
+    var yHex = publkey.substr(64);
+
+    var cipherMode = "0";
+
+    var cipher = new SM2Cipher(cipherMode);
+    var userKey = cipher.CreatePoint(xHex, yHex);
+
+    msgData = cipher.GetWords(msgData.toString());
+
+    var encryptData = cipher.Encrypt(userKey, msgData);
+    var second = new Date().getTime();
+    sm2 += "<br>Ciphertext: "+encryptData;
+    sm2 += "<br>加密耗时: "+(second-start)+" ms";
+    var privateKey = new BigInteger(privkey, 16);
+
+    var second = new Date().getTime();
+    var cipher = new SM2Cipher(cipherMode);
+    var data = cipher.Decrypt(privateKey, encryptData);
+    sm2 += "<br>Plaintext: "+data;
+    var end = new Date().getTime();
+    sm2 += "<br />解密耗时: "+(end-second)+" ms";
+    document.getElementById('sm2').innerHTML = sm2;
+    // --------------------------- SM3 ---------------------------------------
+    var sm3 = "";
+    new Fingerprint2().get(function(result, components){
+        sm3 += "<h3>SM3 算法性能测试</h3>"
+        sm3 += "message: "+result;
+        // var smDigest = new SM3Digest();
+        // smDigest.GetWords(result);
+        // var smHash = new Array(smDigest.GetDigestSize());
+        // smDigest.DoFinal(smHash, 0);
+        var start = new Date().getTime();
+        ciphertext = CryptoJS.SM3(result).toString(CryptoJS.enc.Hex)
+        var second = new Date().getTime();
+        sm3 += "<br>Ciphertext: "+ciphertext;
+        sm3 += "<br>加密耗时: "+(second-start)+" ms";
+        document.getElementById('sm3').innerHTML = sm3;
+    });
+    // --------------------------- SM4 ---------------------------------------
+    var sm4 = "";
+    sm4 += "<h3>SM4 算法性能测试</h3>";
+    sm4 += "message: 12.3,14.5,23-54,12,57,3"
+    key = randomkey("1ab21d8355cfa17f8e61194831e81a8f22bec8c728fefb747ed035eb5082aa2b");
+    sm4 += "<br>key: "+key;
+    var start = new Date().getTime();
+    ciphertext = sm4_encode_cbc("12.3,14.5,23-54,12,57,3",key);
+    var second = new Date().getTime();
+    var result = "";
+    for(var i=0;i<ciphertext.length;i++){
+        hextext = ciphertext[i].toString(16);
+        result += hextext.length == 16 ? hextext :"0".repeat(8-hextext.length)+hextext;
+    }
+    sm4 += "<br>Ciphertext: "+result;
+    sm4 += "<br>加密耗时: "+(second-start)+" ms";
+    var text = new Array();
+    for(var i=0;i<result.length;i+=8){
+        text.push(parseInt(result.slice(i,i+8),16))
+    }
+    var second = new Date().getTime();
+    plaintext = sm4_decode_cbc(text,key);
+    var end = new Date().getTime();
+    sm4 += "<br>Plaintext: "+plaintext;
+    sm4 += "<br>解密耗时: "+(end-second)+" ms";
+    document.getElementById('sm4').innerHTML = sm4;
+</script>
+
+</html>
